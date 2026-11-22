@@ -14,7 +14,7 @@ main{max-width:900px;margin:auto;padding:18px 14px 50px}.panel{background:#fff;b
 .meta{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#84768d}
 .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
 .song{border:2px solid #f0dce9;border-radius:18px;padding:22px 12px;min-height:155px;background:linear-gradient(145deg,#fff,#fff8fc);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;transition:.15s}
-.song:hover{border-color:var(--pink);transform:translateY(-2px);box-shadow:0 8px 20px #d95b9418}.song small{color:#a18da8;margin-bottom:9px}.song strong{font-size:clamp(16px,3vw,21px)}
+.song:hover{border-color:var(--pink);transform:translateY(-2px);box-shadow:0 8px 20px #d95b9418}.song .cover{width:min(100%,190px);aspect-ratio:1/1;object-fit:cover;border-radius:12px;margin:0 auto 12px;box-shadow:0 5px 16px #5b3a6a22;background:linear-gradient(135deg,#ffd6e9,#dcd1ff)}.song small{color:#806d8a;margin:0 0 7px;font-size:12px}.song strong{font-size:clamp(17px,3.5vw,22px);line-height:1.4;overflow-wrap:anywhere}.song .album{font-size:11px;color:#a18da8;margin-top:7px;line-height:1.35}
 button{border:0;border-radius:999px;padding:12px 20px;background:linear-gradient(90deg,var(--pink),var(--purple));color:#fff;font-weight:700;cursor:pointer;font-size:14px}
 button.secondary{background:#f4edf5;color:#6d5b78}button:disabled{opacity:.4;cursor:not-allowed}
 .actions{display:flex;justify-content:center;flex-wrap:wrap;gap:9px}.hint{text-align:center;font-size:13px;color:#8c7d92;line-height:1.7}
@@ -35,8 +35,8 @@ details summary{cursor:pointer;font-weight:700;color:#705d7c}textarea{min-height
  <div class="progress"><div class="bar" id="bar"></div></div>
  <p class="hint">表示された2曲から、より好きな曲を選んでください。<br>迷ったら「今回は決められない」でスキップできます。</p>
  <div class="cards" id="cards">
-  <button class="song" id="a"><small>どっちが好き？</small><strong></strong></button>
-  <button class="song" id="b"><small>どっちが好き？</small><strong></strong></button>
+  <button type="button" class="song" id="a"><img class="cover" alt="アルバムジャケット"><small class="series"></small><strong class="title"></strong><span class="album"></span></button>
+  <button type="button" class="song" id="b"><img class="cover" alt="アルバムジャケット"><small class="series"></small><strong class="title"></strong><span class="album"></span></button>
  </div>
  <div class="actions">
   <button id="skip" class="secondary">今回は決められない</button>
@@ -83,11 +83,40 @@ const $=id=>document.getElementById(id);
 const series=[...new Set(initial.map(x=>x[1]))];
 series.forEach(s=>{let l=document.createElement('label');l.innerHTML=`<input type="checkbox" checked value="${s}"> ${s}`;$('filters').append(l)});
 function filterSongs(){let q=$('search').value.toLowerCase();let chosen=[...$('filters').querySelectorAll('input:checked')].map(x=>x.value);active=songs.filter(x=>chosen.includes(x[1])&&x[0].toLowerCase().includes(q));$('count').textContent=`比較対象：${active.length}曲`;if(active.length<2)alert('比較には2曲以上必要です。フィルターを調整してください。');}
-function pair(){if(active.length<2){filterSongs();}let pool=active.filter(x=>!current||x[0]!==current[0]);let a=pool[Math.floor(Math.random()*pool.length)];let b=active.filter(x=>x[0]!==a[0])[Math.floor(Math.random()*(active.length-1))];if(!a||!b)return;current=[a,b];$('a').querySelector('strong').textContent=a[0];$('b').querySelector('strong').textContent=b[0];$('a').querySelector('small').textContent=a[1];$('b').querySelector('small').textContent=b[1];$('round').textContent=`比較 ${compared+1} 回目`;$('left').textContent=`対象 ${active.length} 曲`;$('bar').style.width=Math.min(100,compared/Math.max(1,active.length*2)*100)+'%';}
-function vote(i){if(!current)return;undoStack.push({winner:current[i],pair:current,compared});wins[current[i][0]]=(wins[current[i][0]]||0)+1;compared++;$('undo').disabled=false;pair();}
-function show(){let ranked=active.map(x=>({x,score:wins[x[0]]||0})).sort((a,b)=>b.score-a.score||a.x[0].localeCompare(b.x[0],'ja'));$('ranking').innerHTML=ranked.slice(0,50).map((v,i)=>`<li><span class="rank">${i+1}位</span><b>${v.x[0]}</b> <small>（${v.x[1]}／選ばれた回数 ${v.score}）</small></li>`).join('');$('done').style.display='block';$('play').style.display='none';}
+const coverCache=new Map();
+function norm(t){return (t||'').toLowerCase().replace(/[！!？?・･\s「」『』（）()［］\[\]☆★＊*〜～]/g,'');}
+async function loadCover(song, img, albumEl){
+ const key=song[0]+'|'+song[1];
+ if(coverCache.has(key)){const d=coverCache.get(key);img.src=d.url;albumEl.textContent=d.album||'アルバム情報';return;}
+ img.removeAttribute('src');img.alt=song[0]+' のジャケット画像';albumEl.textContent='ジャケットを検索中…';
+ try{
+  const term=encodeURIComponent(song[0]+' アイカツ');
+  const res=await fetch('https://itunes.apple.com/search?term='+term+'&entity=song&country=JP&limit=8');
+  if(!res.ok)throw new Error('artwork search failed');
+  const data=await res.json();
+  const exact=(data.results||[]).find(r=>norm(r.trackName)===norm(song[0]));
+  const item=exact||(data.results||[])[0];
+  if(item&&item.artworkUrl100){const url=item.artworkUrl100.replace(/100x100bb\.jpg.*/, '600x600bb.jpg');coverCache.set(key,{url,album:item.collectionName||''});img.src=url;albumEl.textContent=item.collectionName||'収録アルバム';}
+  else{albumEl.textContent='ジャケット画像は未登録';}
+ }catch(e){albumEl.textContent='画像を取得できません';}
+}
+function renderCard(id,song){const btn=$(id);btn.querySelector('.title').textContent=song[0];btn.querySelector('.series').textContent='作品：'+song[1];const img=btn.querySelector('.cover');img.src='';loadCover(song,img,btn.querySelector('.album'));}
+function pair(){
+ if(active.length<2){$('round').textContent='比較できる曲が2曲以上必要です';return;}
+ let pool=active.filter(x=>!current||x[0]!==current[0][0]||x[1]!==current[0][1]);
+ if(pool.length===0)pool=active;
+ const a=pool[Math.floor(Math.random()*pool.length)];
+ const alternatives=active.filter(x=>x[0]!==a[0]||x[1]!==a[1]);
+ const b=alternatives[Math.floor(Math.random()*alternatives.length)];
+ if(!a||!b)return;
+ current=[a,b];renderCard('a',a);renderCard('b',b);
+ $('round').textContent=`比較 ${compared+1} 回目`;$('left').textContent=`対象 ${active.length} 曲`;
+ $('bar').style.width=Math.min(100,compared/Math.max(1,active.length*2)*100)+'%';
+}
+function vote(i){if(!current)return;undoStack.push({winner:current[i],pair:current,compared});const winKey=current[i][0]+'｜'+current[i][1];wins[winKey]=(wins[winKey]||0)+1;compared++;$('undo').disabled=false;pair();}
+function show(){let ranked=active.map(x=>({x,score:wins[x[0]+'｜'+x[1]]||0})).sort((a,b)=>b.score-a.score||a.x[0].localeCompare(b.x[0],'ja'));$('ranking').innerHTML=ranked.slice(0,50).map((v,i)=>`<li><span class="rank">${i+1}位</span><b>${v.x[0]}</b> <small>（${v.x[1]}／選ばれた回数 ${v.score}）</small></li>`).join('');$('done').style.display='block';$('play').style.display='none';}
 $('a').onclick=()=>vote(0);$('b').onclick=()=>vote(1);$('skip').onclick=()=>{if(current){undoStack.push({skip:true,pair:current,compared});compared++;pair();}};
-$('undo').onclick=()=>{let h=undoStack.pop();if(!h)return;if(!h.skip)wins[h.winner[0]]=Math.max(0,(wins[h.winner[0]]||0)-1);compared=h.compared;$('undo').disabled=!undoStack.length;pair();};
+$('undo').onclick=()=>{let h=undoStack.pop();if(!h)return;if(!h.skip){const winKey=h.winner[0]+'｜'+h.winner[1];wins[winKey]=Math.max(0,(wins[winKey]||0)-1);}compared=h.compared;$('undo').disabled=!undoStack.length;pair();};
 $('finish').onclick=show;$('continue').onclick=()=>{$('done').style.display='none';$('play').style.display='block';pair();};$('reset').onclick=()=>{wins={};undoStack=[];compared=0;$('done').style.display='none';$('play').style.display='block';pair();};
 $('tabGuide').onclick=()=>{$('guide').hidden=false;$('songSettings').hidden=true;$('tabGuide').classList.add('active');$('tabSongs').classList.remove('active')};
 $('tabSongs').onclick=()=>{$('guide').hidden=true;$('songSettings').hidden=false;$('tabSongs').classList.add('active');$('tabGuide').classList.remove('active')};
