@@ -12,9 +12,9 @@ h1{font-size:clamp(25px,5vw,38px);margin:5px 0;color:#d94e91;letter-spacing:.04e
 main{max-width:900px;margin:auto;padding:18px 14px 50px}.panel{background:#fff;border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:0 8px 28px #9c6a8b12;margin:14px 0}
 .progress{height:9px;background:#f4e8f0;border-radius:9px;overflow:hidden;margin:12px 0}.bar{height:100%;width:0;background:linear-gradient(90deg,var(--pink),var(--purple));transition:width .25s}
 .meta{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#84768d}
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
-.song{color:var(--ink);border:2px solid #f0dce9;border-radius:18px;padding:22px 12px;min-height:155px;background:linear-gradient(145deg,#fff,#fff8fc);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;transition:.15s}
-.song:hover{border-color:var(--pink);transform:translateY(-2px);box-shadow:0 8px 20px #d95b9418}.song .cover{display:block;width:min(100%,190px);aspect-ratio:1/1;object-fit:cover;border-radius:12px;margin:0 auto 12px;box-shadow:0 5px 16px #5b3a6a22;background:linear-gradient(135deg,#ffd6e9,#dcd1ff)}.song small{color:#806d8a;margin:0 0 7px;font-size:12px}.song strong{color:#40354b;font-weight:800}.song .album{color:#806d8a}.song strong{font-size:clamp(17px,3.5vw,22px);line-height:1.4;overflow-wrap:anywhere}.song .album{font-size:11px;color:#a18da8;margin-top:7px;line-height:1.35}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin:20px 0}
+.song{position:relative;color:#40354b !important;border:2px solid #f0dce9;border-radius:16px;padding:12px 9px;min-height:205px;background:linear-gradient(145deg,#fff,#fff8fc);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;transition:.15s}
+.song.selected{border:3px solid var(--pink);background:linear-gradient(145deg,#fff0f7,#f3edff);box-shadow:0 0 0 3px #f26ca733}.song.selected:after{content:'✓ 選択中';position:absolute;top:7px;right:7px;background:#d94e91;color:white;border-radius:99px;padding:4px 8px;font-size:10px;font-weight:800}.song:hover{border-color:var(--pink);transform:translateY(-2px);box-shadow:0 8px 20px #d95b9418}.song .cover{display:block;width:min(100%,145px);aspect-ratio:1/1;object-fit:cover;border-radius:12px;margin:0 auto 12px;box-shadow:0 5px 16px #5b3a6a22;background:linear-gradient(135deg,#ffd6e9,#dcd1ff)}.song small{color:#705d7c !important;margin:0 0 7px;font-size:12px}.song strong{color:#30243b !important;font-weight:900;text-shadow:none;}.song .album{color:#705d7c !important}.song strong{font-size:clamp(17px,3.5vw,22px);line-height:1.4;overflow-wrap:anywhere}.song .album{font-size:11px;color:#705d7c !important;margin-top:7px;line-height:1.35}
 button{border:0;border-radius:999px;padding:12px 20px;background:linear-gradient(90deg,var(--pink),var(--purple));color:#fff;font-weight:700;cursor:pointer;font-size:14px}
 button.secondary{background:#f4edf5;color:#6d5b78}button:disabled{opacity:.4;cursor:not-allowed}
 .actions{display:flex;justify-content:center;flex-wrap:wrap;gap:9px}.hint{text-align:center;font-size:13px;color:#8c7d92;line-height:1.7}
@@ -24,22 +24,21 @@ ul{padding-left:24px}.ranking li{padding:8px 4px;border-bottom:1px solid #f3e8ef
 input[type=search],textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px;font:inherit}
 details summary{cursor:pointer;font-weight:700;color:#705d7c}textarea{min-height:130px;margin:10px 0}
 #done{display:none}.foot{font-size:12px;color:#9a8b9f;text-align:center;margin:24px 0}
-@media(max-width:560px){.cards{grid-template-columns:1fr}.song{min-height:115px}.panel{padding:16px}}
+@media(max-width:560px){.cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.song{min-height:185px;padding:10px 7px}.song .cover{width:100%;max-width:125px}.song strong{font-size:15px}.panel{padding:16px}}
 </style>
 </head>
 <body>
 <header><div style="font-size:25px">✦ ♡ ✦</div><h1>オールアイカツ！<br>楽曲推し曲メーカー</h1><div class="sub">あなたの「いちばん好きなアイカツ！楽曲」を見つけよう</div></header>
 <main>
 <section class="panel" id="play">
- <div class="meta"><span id="round">楽曲を準備中…</span><span id="left"></span></div>
+ <div class="meta"><span id="round">予選を準備中…</span><span id="left"></span></div>
  <div class="progress"><div class="bar" id="bar"></div></div>
- <p class="hint">表示された2曲から、より好きな曲を選んでください。<br>迷ったら「今回は決められない」でスキップできます。</p>
- <div class="cards" id="cards">
-  <button type="button" class="song" id="a"><img class="cover" alt="アルバムジャケット"><small class="series"></small><strong class="title"></strong><span class="album"></span></button>
-  <button type="button" class="song" id="b"><img class="cover" alt="アルバムジャケット"><small class="series"></small><strong class="title"></strong><span class="album"></span></button>
- </div>
+ <p class="hint" id="instruction">10曲の中から、特に好きな曲を最大3曲選んでください。</p>
+ <p class="hint" id="selectionCount">選択中：0曲</p>
+ <div class="cards" id="cards"></div>
  <div class="actions">
-  <button id="skip" class="secondary">今回は決められない</button>
+  <button id="nextStage">選択した曲で次へ</button>
+  <button id="skip" class="secondary">今回は選ばず次へ</button>
   <button id="undo" class="secondary" disabled>ひとつ戻る</button>
   <button id="finish" class="secondary">ここまでの結果を見る</button>
  </div>
@@ -52,7 +51,7 @@ details summary{cursor:pointer;font-weight:700;color:#705d7c}textarea{min-height
 </section>
 <section class="panel">
  <div class="tabs"><button class="tab active" id="tabGuide">使い方</button><button class="tab" id="tabSongs">収録曲・設定</button></div>
- <div id="guide"><p>① 2曲のうち好きな方をタップ。② 何度か比較するとランキングが育ちます。③「結果を見る」で現時点の順位を確認できます。</p><p class="hint">シリーズ・ユニットなどの絞り込みや、曲の追加・削除もできます。</p></div>
+ <div id="guide"><p>① 予選では10曲から最大3曲を選びます。② 準決勝では最大2曲に絞ります。③ 決勝でNo.1を決定します。</p><p class="hint">シリーズの絞り込みや、曲の追加・削除もできます。選んだ曲だけが次の段階に進みます。</p></div>
  <div id="songSettings" hidden>
   <input type="search" id="search" placeholder="曲名・シリーズで検索">
   <div class="filters" id="filters"></div>
@@ -73,58 +72,157 @@ const initial = [
 ["アイドル活動！","アイカツ！"],["Signalize!","アイカツ！"],["ダイヤモンドハッピー","アイカツ！"],["ヒラリ／ヒトリ／キラリ","アイカツ！"],["カレンダーガール","アイカツ！"],["fashion check!","アイカツ！"],["Growing for a dream","アイカツ！"],["prism spiral","アイカツ！"],["放課後ポニーテール","アイカツ！"],["Kira・pata・shining","アイカツ！"],["オリジナルスター☆彡","アイカツ！"],["SHINING LINE*","アイカツ！"],["Precious","アイカツ！"],["笑顔のSuncatcher","アイカツ！"],["ハッピィクレッシェンド","アイカツ！"],["stranger alien","アイカツ！"],["永遠の灯","アイカツ！"],["硝子ドール","アイカツ！"],["Take Me Higher","アイカツ！"],["Moonlight destiny","アイカツ！"],["Du-Du-Wa DO IT!!","アイカツ！"],["Lovely Party Collection","アイカツ！"],["チュチュ・バレリーナ","アイカツ！"],["薄紅デイトリッパー","アイカツ！"],["タルト・タタン","アイカツ！"],["Passion flower","アイカツ！"],["恋するみたいなキャラメリゼ","アイカツ！"],["Pretty Pretty","アイカツ！"],["START DASH SENSATION","アイカツ！"],["MY SHOW TIME!","アイカツ！"],["約束カラット","アイカツ！"],["lucky train!","アイカツ！"],["ラン・ラン・ドゥ・ラン・ラン！","アイカツ！"],
 ["スタートライン！","スターズ！"],["アイカツ☆ステップ！","スターズ！"],["episode Solo","スターズ！"],["1, 2, Sing for You!","スターズ！"],["So Beautiful Story","スターズ！"],["スタージェット！","スターズ！"],["MUSIC of DREAM!!!","スターズ！"],["Message of a Rainbow","スターズ！"],["裸足のルネサンス","スターズ！"],["アニマルカーニバル","スターズ！"],["おねがいメリー","スターズ！"],["Halloween Night Magic","スターズ！"],["POPCORN DREAMING♪","スターズ！"],["Summer Tears Diary","スターズ！"],["The only sun light","スターズ！"],["Forever Dream","スターズ！"],["キミをロックオン！","スターズ！"],["荒野の奇跡","スターズ！"],["Bon Bon Voyage!","スターズ！"],["MUSIC of DREAM!!!","スターズ！"],
 ["ありがと⇄大丈夫","フレンズ！"],["アイカツフレンズ！","フレンズ！"],["みんなみんな！","フレンズ！"],["そこにしかないもの","フレンズ！"],["プライド","フレンズ！"],["偶然、必然。","フレンズ！"],["いっしょにA・I・K・A・T・S・U！","フレンズ！"],["絆～シンクロハーモニー～","フレンズ！"],["セカイは廻る","フレンズ！"],["窓-ココロ-ひらこう","フレンズ！"],["ひとりじゃない！","フレンズ！"],["おけまる","フレンズ！"],["Be star","フレンズ！"],["新たなるステージへ","フレンズ！"],["強く優しく美しく","フレンズ！"],["あるがまま","フレンズ！"],["みつけようよ♪","フレンズ！"],
-["君のEntrance","オンパレード！"],[" petit milady","オンパレード！"],["アコガレカスタマイズ☆","オンパレード！"],["正義のキモチ","オンパレード！"],["STARDOM！","オンパレード！"],["So Sweet","オンパレード！"],["Take Me Higher","オンパレード！"],["Future jewel","オンパレード！"],["In bloom","オンパレード！"],["Dreaming bird","オンパレード！"],
+["君のEntrance","オンパレード！"],["アコガレカスタマイズ☆","オンパレード！"],["正義のキモチ","オンパレード！"],["STARDOM！","オンパレード！"],["So Sweet","オンパレード！"],["Take Me Higher","オンパレード！"],["Future jewel","オンパレード！"],["In bloom","オンパレード！"],["Dreaming bird","オンパレード！"],
 ["HAPPY∞アイカツ！","プラネット！"],["Bloomy＊スマイル","プラネット！"],["キラリ☆パーティ♪タイム","プラネット！"],["Shining Your Life","プラネット！"],["FLYING TIPS","プラネット！"],["レディ・レディ・レディ","プラネット！"],["Inner Voice","プラネット！"],["プチプラEveryday","プラネット！"],["またまたまたまたまた明日","プラネット！"],["ファンタジっくイマジネーション","プラネット！"],["Magical Door","プラネット！"],["HAPPY∞アイカツ！","プラネット！"],
 ["MY STARWAY","10th STORY"],["氷の森","10th STORY"],["星空のフロア","10th STORY"],["カレンダーガール（10th ver.）","10th STORY"],
-["Signalize!","その他・劇場版"],["輝きのエチュード","その他・劇場版"],["Let's アイカツ！","その他・劇場版"],["アイカツメロディ！","その他・劇場版"],["劇場版アイカツ！ボーカル曲","その他・劇場版"]
+["Signalize!","その他・劇場版"],["輝きのエチュード","その他・劇場版"],["Let's アイカツ！","その他・劇場版"],["アイカツメロディ！","その他・劇場版"],
 ];
-let songs=[...initial], active=[...initial], wins={}, undoStack=[], current=null, compared=0;
+const uniqueInitial=[...new Map(initial.map(x=>[x[0]+'｜'+x[1],x])).values()];
+let songs=[...uniqueInitial], active=[...uniqueInitial];
+let stage=1, batches=[], batchIndex=0, selected=new Set(), survivors=[], finalists=[], champion=null;
+let undoStack=[];
 const $=id=>document.getElementById(id);
-const series=[...new Set(initial.map(x=>x[1]))];
+const series=[...new Set(uniqueInitial.map(x=>x[1]))];
 series.forEach(s=>{let l=document.createElement('label');l.innerHTML=`<input type="checkbox" checked value="${s}"> ${s}`;$('filters').append(l)});
-function filterSongs(){let q=$('search').value.toLowerCase();let chosen=[...$('filters').querySelectorAll('input:checked')].map(x=>x.value);active=songs.filter(x=>chosen.includes(x[1])&&x[0].toLowerCase().includes(q));$('count').textContent=`比較対象：${active.length}曲`;if(active.length<2)alert('比較には2曲以上必要です。フィルターを調整してください。');}
+function filterSongs(){
+ let q=$('search').value.toLowerCase();
+ let chosen=[...$('filters').querySelectorAll('input:checked')].map(x=>x.value);
+ active=songs.filter(x=>chosen.includes(x[1])&&x[0].toLowerCase().includes(q));
+ $('count').textContent=`比較対象：${active.length}曲`;
+}
 const coverCache=new Map();
 function norm(t){return (t||'').toLowerCase().replace(/[！!？?・･\s「」『』（）()［］\[\]☆★＊*〜～]/g,'');}
-async function loadCover(song, img, albumEl){
+async function loadCover(song,img,albumEl){
  const key=song[0]+'|'+song[1];
- if(coverCache.has(key)){const d=coverCache.get(key);img.src=d.url;albumEl.textContent=d.album||'アルバム情報';return;}
- img.removeAttribute('src');img.alt=song[0]+' のジャケット画像';albumEl.textContent='ジャケットを検索中…';
+ if(coverCache.has(key)){
+  const d=coverCache.get(key); if(d.url) img.src=d.url;
+  albumEl.textContent=d.album||'公式ジャケット未確認'; return;
+ }
+ img.removeAttribute('src'); img.alt=song[0]+' のアルバムジャケット';
+ albumEl.textContent='ジャケット確認中…';
  try{
   const term=encodeURIComponent(song[0]+' アイカツ');
-  const res=await fetch('https://itunes.apple.com/search?term='+term+'&entity=song&country=JP&limit=8');
-  if(!res.ok)throw new Error('artwork search failed');
+  const res=await fetch('https://itunes.apple.com/search?term='+term+'&entity=song&country=JP&limit=25');
+  if(!res.ok) throw new Error('search failed');
   const data=await res.json();
-  const exact=(data.results||[]).find(r=>norm(r.trackName)===norm(song[0]));
-  const item=exact||(data.results||[])[0];
-  if(item&&item.artworkUrl100){const url=item.artworkUrl100.replace(/100x100bb\.jpg.*/, '600x600bb.jpg');coverCache.set(key,{url,album:item.collectionName||''});img.src=url;albumEl.textContent=item.collectionName||'収録アルバム';}
-  else{albumEl.textContent='ジャケット画像は未登録';}
- }catch(e){albumEl.textContent='画像を取得できません';}
+  const exact=(data.results||[]).filter(r=>norm(r.trackName)===norm(song[0]));
+  const trusted=exact.find(r=>{
+   const meta=((r.artistName||'')+' '+(r.collectionName||'')).toLowerCase();
+   return /アイカツ|aikatsu|star.?anis|best friends|aikatsu.?stars|るか|りすこ|わか|ふうり|ゆな|れみ|えり|みき|みほ|ななせ|かな|せな|りえ|あいね|みお|舞桜|るり/.test(meta);
+  });
+  if(trusted&&trusted.artworkUrl100){
+   const url=trusted.artworkUrl100.replace(/100x100bb\.jpg.*/,'600x600bb.jpg');
+   coverCache.set(key,{url,album:trusted.collectionName||'アイカツ！関連アルバム'});
+   img.src=url; albumEl.textContent=trusted.collectionName||'アイカツ！関連アルバム';
+  }else{
+   coverCache.set(key,{url:'',album:'公式ジャケット未確認'});
+   albumEl.textContent='公式ジャケット未確認';
+  }
+ }catch(e){albumEl.textContent='ジャケットを取得できません';}
 }
-function renderCard(id,song){const btn=$(id);btn.querySelector('.title').textContent=song[0];btn.querySelector('.series').textContent='作品：'+song[1];const img=btn.querySelector('.cover');img.src='';loadCover(song,img,btn.querySelector('.album'));}
-function pair(){
- if(active.length<2){$('round').textContent='比較できる曲が2曲以上必要です';return;}
- let pool=active.filter(x=>!current||x[0]!==current[0][0]||x[1]!==current[0][1]);
- if(pool.length===0)pool=active;
- const a=pool[Math.floor(Math.random()*pool.length)];
- const alternatives=active.filter(x=>x[0]!==a[0]||x[1]!==a[1]);
- const b=alternatives[Math.floor(Math.random()*alternatives.length)];
- if(!a||!b)return;
- current=[a,b];renderCard('a',a);renderCard('b',b);
- $('round').textContent=`比較 ${compared+1} 回目`;$('left').textContent=`対象 ${active.length} 曲`;
- $('bar').style.width=Math.min(100,compared/Math.max(1,active.length*2)*100)+'%';
+function shuffle(list){
+ const a=[...list];
+ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+ return a;
 }
-function vote(i){if(!current)return;undoStack.push({winner:current[i],pair:current,compared});const winKey=current[i][0]+'｜'+current[i][1];wins[winKey]=(wins[winKey]||0)+1;compared++;$('undo').disabled=false;pair();}
-function show(){let ranked=active.map(x=>({x,score:wins[x[0]+'｜'+x[1]]||0})).sort((a,b)=>b.score-a.score||a.x[0].localeCompare(b.x[0],'ja'));$('ranking').innerHTML=ranked.slice(0,50).map((v,i)=>`<li><span class="rank">${i+1}位</span><b>${v.x[0]}</b> <small>（${v.x[1]}／選ばれた回数 ${v.score}）</small></li>`).join('');$('done').style.display='block';$('play').style.display='none';}
-$('a').onclick=()=>vote(0);$('b').onclick=()=>vote(1);$('skip').onclick=()=>{if(current){undoStack.push({skip:true,pair:current,compared});compared++;pair();}};
-$('undo').onclick=()=>{let h=undoStack.pop();if(!h)return;if(!h.skip){const winKey=h.winner[0]+'｜'+h.winner[1];wins[winKey]=Math.max(0,(wins[winKey]||0)-1);}compared=h.compared;$('undo').disabled=!undoStack.length;pair();};
-$('finish').onclick=show;$('continue').onclick=()=>{$('done').style.display='none';$('play').style.display='block';pair();};$('reset').onclick=()=>{wins={};undoStack=[];compared=0;$('done').style.display='none';$('play').style.display='block';pair();};
+function chunk(list,size){const out=[];for(let i=0;i<list.length;i+=size)out.push(list.slice(i,i+size));return out;}
+function makeCard(song,index){
+ const btn=document.createElement('button');btn.type='button';btn.className='song';
+ const img=document.createElement('img');img.className='cover';img.alt=song[0]+' のアルバムジャケット';
+ const seriesEl=document.createElement('small');seriesEl.textContent='収録作品：'+song[1];
+ const title=document.createElement('strong');title.textContent=song[0];
+ const album=document.createElement('span');album.className='album';album.textContent='ジャケット確認中…';
+ btn.append(img,seriesEl,title,album);
+ btn.addEventListener('click',()=>toggle(song,btn));
+ loadCover(song,img,album);
+ return btn;
+}
+function currentBatch(){
+ if(stage===1||stage===2)return batches[batchIndex]||[];
+ return finalists;
+}
+function render(){
+ const list=currentBatch();
+ $('cards').innerHTML='';
+ selected=new Set();
+ list.forEach((song,i)=>$('cards').append(makeCard(song,i)));
+ const max=stage===1?3:stage===2?2:1;
+ $('round').textContent=stage===1?`第1段階・予選 ${batchIndex+1}/${batches.length}`:stage===2?`第2段階・準決勝 ${batchIndex+1}/${batches.length}`:'第3段階・決勝';
+ $('left').textContent=`今回 ${list.length}曲`;
+ $('instruction').textContent=stage===1?'10曲の中から、特に好きな曲を最大3曲選んでください。':stage===2?'残った曲から、さらに好きな曲を最大2曲選んでください。':'最後の候補から、あなたのNo.1楽曲を1曲選んでください。';
+ $('selectionCount').textContent=`選択中：0曲（最大${Math.min(max,list.length)}曲）`;
+ $('nextStage').textContent=stage===3?'この曲に決定！':'選択した曲で次へ';
+ $('skip').style.display=stage===3?'none':'inline-block';
+ $('bar').style.width=stage===1?(batchIndex/batches.length*55)+'%':stage===2?(55+batchIndex/batches.length*35)+'%':'95%';
+}
+function toggle(song,btn){
+ const key=song[0]+'｜'+song[1], max=stage===1?3:stage===2?2:1;
+ if(selected.has(key)){selected.delete(key);btn.classList.remove('selected');}
+ else{
+  if(selected.size>=max){$('selectionCount').textContent=`最大${max}曲まで選べます。`;return;}
+  selected.add(key);btn.classList.add('selected');
+ }
+ $('selectionCount').textContent=`選択中：${selected.size}曲（最大${Math.min(max,currentBatch().length)}曲）`;
+}
+function advance(){
+ const chosen=currentBatch().filter(s=>selected.has(s[0]+'｜'+s[1]));
+ undoStack.push({stage,batchIndex,batches:JSON.parse(JSON.stringify(batches)),survivors:[...survivors],finalists:[...finalists],champion});
+ if(stage===1){
+  survivors.push(...chosen);batchIndex++;
+  if(batchIndex<batches.length){render();return;}
+  batches=chunk(survivors,10);batchIndex=0;stage=2;
+  if(!survivors.length){show();return;}
+  if(batches.length===0){show();return;}
+  render();return;
+ }
+ if(stage===2){
+  finalists.push(...chosen);batchIndex++;
+  if(batchIndex<batches.length){render();return;}
+  stage=3;batchIndex=0;
+  if(!finalists.length){show();return;}
+  render();return;
+ }
+ champion=chosen[0]||null;show();
+}
+function skipBatch(){advance();}
+function start(){
+ stage=1;batchIndex=0;selected=new Set();survivors=[];finalists=[];champion=null;undoStack=[];
+ const list=shuffle(active);
+ batches=chunk(list,10);
+ if(!list.length){$('round').textContent='収録曲がありません';$('cards').innerHTML='';return;}
+ render();
+}
+function show(){
+ const ranked=champion?[champion,...finalists.filter(x=>x[0]!==champion[0]||x[1]!==champion[1])]:finalists;
+ $('ranking').innerHTML=(ranked.length?ranked:survivors).map((x,i)=>`<li><span class="rank">${i+1}位</span><b>${x[0]}</b> <small>（${x[1]}）</small></li>`).join('');
+ if(champion)$('ranking').innerHTML=`<li><span class="rank">No.1</span><b>${champion[0]}</b> <small>（${champion[1]}）</small></li>`+$('ranking').innerHTML;
+ $('done').style.display='block';$('play').style.display='none';
+}
+$('nextStage').onclick=advance;
+$('skip').onclick=skipBatch;
+$('undo').onclick=()=>{
+ const h=undoStack.pop();if(!h)return;
+ stage=h.stage;batchIndex=h.batchIndex;batches=h.batches;survivors=h.survivors;finalists=h.finalists;champion=h.champion;render();
+};
+$('finish').onclick=show;
+$('continue').onclick=()=>{$('done').style.display='none';$('play').style.display='block';render();};
+$('reset').onclick=()=>start();
 $('tabGuide').onclick=()=>{$('guide').hidden=false;$('songSettings').hidden=true;$('tabGuide').classList.add('active');$('tabSongs').classList.remove('active')};
 $('tabSongs').onclick=()=>{$('guide').hidden=true;$('songSettings').hidden=false;$('tabSongs').classList.add('active');$('tabGuide').classList.remove('active')};
-$('filters').onchange=filterSongs;$('search').oninput=filterSongs;
-$('add').onclick=()=>{let lines=$('custom').value.split('\n').map(x=>x.trim()).filter(Boolean);lines.forEach(n=>songs.push([n,'追加曲']));$('custom').value='';if(!$('filters').querySelector('[value="追加曲"]')){let l=document.createElement('label');l.innerHTML='<input type="checkbox" checked value="追加曲"> 追加曲';$('filters').append(l)}filterSongs();pair();alert(`${lines.length}曲を追加しました。`);};
-$('restore').onclick=()=>{songs=[...initial];$('filters').innerHTML='';series.forEach(s=>{let l=document.createElement('label');l.innerHTML=`<input type="checkbox" checked value="${s}"> ${s}`;$('filters').append(l)});filterSongs();pair();};
-filterSongs();pair();
-
+$('filters').onchange=()=>{filterSongs();};
+$('search').oninput=()=>{filterSongs();};
+$('add').onclick=()=>{
+ let lines=$('custom').value.split('\n').map(x=>x.trim()).filter(Boolean);
+ lines.forEach(n=>songs.push([n,'追加曲']));$('custom').value='';
+ if(!$('filters').querySelector('[value="追加曲"]')){let l=document.createElement('label');l.innerHTML='<input type="checkbox" checked value="追加曲"> 追加曲';$('filters').append(l);}
+ filterSongs();alert(`${lines.length}曲を追加しました。最初から開始すると反映されます。`);
+};
+$('restore').onclick=()=>{
+ songs=[...uniqueInitial];$('filters').innerHTML='';
+ series.forEach(s=>{let l=document.createElement('label');l.innerHTML=`<input type="checkbox" checked value="${s}"> ${s}`;$('filters').append(l)});
+ filterSongs();start();
+};
+filterSongs();start();
 })();
 </script>
 </body></html>
