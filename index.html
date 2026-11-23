@@ -45,13 +45,13 @@ details summary{cursor:pointer;font-weight:700;color:#705d7c}textarea{min-height
 </section>
 <section class="panel" id="done">
  <h2 style="color:#d94e91;margin-top:0">♡ あなたの推し曲 TOP 10 ♡</h2>
- <p class="hint">予選1pt・準決勝3pt・決勝進出10ptで集計したTOP10です。</p>
+ <p class="hint">No.1決定後、残りの候補を2曲ずつ直接比較して2〜10位を決めます。ポイントは候補選出と同点時の参考に使います。</p>
  <ol class="ranking" id="ranking"></ol>
  <div class="actions"><button id="continue">比較を続ける</button><button id="reset" class="secondary">最初からやり直す</button></div>
 </section>
 <section class="panel">
  <div class="tabs"><button class="tab active" id="tabGuide">使い方</button><button class="tab" id="tabSongs">収録曲・設定</button></div>
- <div id="guide"><p>① 予選では10曲から最大3曲を選びます。② 準決勝では最大3曲に絞ります。③ 決勝でNo.1を決定。選出段階に応じたポイントでTOP10を表示します。</p><p class="hint">シリーズの絞り込みや、曲の追加・削除もできます。選んだ曲だけが次の段階に進みます。</p></div>
+ <div id="guide"><p>① 予選では10曲から最大3曲を選びます。② 準決勝では最大3曲に絞ります。③ 決勝でNo.1を決定。④ 最後に2曲ずつ比較して2〜10位を細かく決めます。</p><p class="hint">シリーズの絞り込みや、曲の追加・削除もできます。選んだ曲だけが次の段階に進みます。</p></div>
  <div id="songSettings" hidden>
   <input type="search" id="search" placeholder="曲名・シリーズで検索">
   <div class="filters" id="filters"></div>
@@ -83,6 +83,7 @@ const uniqueInitial=[...new Map(initial.map(x=>[x[0]+'｜'+x[1],x])).values()];
 let songs=[...uniqueInitial], active=[...uniqueInitial];
 let stage=1, batches=[], batchIndex=0, selected=new Set(), survivors=[], finalists=[], champion=null;
 let scoreMap=new Map(), scoreOrder=new Map(), scoreClock=0;
+let rankingPool=[], sortedRunners=[], insertIndex=0, compareIndex=-1;
 let undoStack=[];
 const $=id=>document.getElementById(id);
 const series=[...new Set(uniqueInitial.map(x=>x[1]))];
@@ -142,6 +143,9 @@ function makeCard(song,index){
 }
 function currentBatch(){
  if(stage===1||stage===2)return batches[batchIndex]||[];
+ if(stage===4 && insertIndex<rankingPool.length && compareIndex>=0){
+  return [rankingPool[insertIndex],sortedRunners[compareIndex]];
+ }
  return finalists;
 }
 function render(){
@@ -149,17 +153,18 @@ function render(){
  $('cards').innerHTML='';
  selected=new Set();
  list.forEach((song,i)=>$('cards').append(makeCard(song,i)));
- const max=stage===1?3:stage===2?3:1;
- $('round').textContent=stage===1?`第1段階・予選 ${batchIndex+1}/${batches.length}`:stage===2?`第2段階・準決勝 ${batchIndex+1}/${batches.length}`:'第3段階・決勝';
+ const max=(stage===1||stage===2)?3:1;
+ $('round').textContent=stage===1?`第1段階・予選 ${batchIndex+1}/${batches.length}`:stage===2?`第2段階・準決勝 ${batchIndex+1}/${batches.length}`:stage===3?'第3段階・No.1決定':`第4段階・2〜10位の順位決定 ${Math.max(0,insertIndex-1)}/${Math.max(0,rankingPool.length-1)}`;
  $('left').textContent=`今回 ${list.length}曲`;
- $('instruction').textContent=stage===1?'10曲の中から、特に好きな曲を最大3曲選んでください。':stage===2?'残った曲から、さらに好きな曲を最大3曲選んでください。':'最後の候補から、あなたのNo.1楽曲を1曲選んでください。';
+ $('instruction').textContent=stage===1?'10曲の中から、特に好きな曲を最大3曲選んでください。':stage===2?'残った曲から、さらに好きな曲を最大3曲選んでください。':stage===3?'最後の候補から、あなたのNo.1楽曲を1曲選んでください。':'表示された2曲を比べて、より好きな方を1曲選んでください。比較を繰り返して2〜10位を決めます。';
  $('selectionCount').textContent=`選択中：0曲（最大${Math.min(max,list.length)}曲）`;
- $('nextStage').textContent=stage===3?'この曲に決定！':'選択した曲で次へ';
- $('skip').style.display=stage===3?'none':'inline-block';
- $('bar').style.width=stage===1?(batchIndex/batches.length*55)+'%':stage===2?(55+batchIndex/batches.length*35)+'%':'95%';
+ $('nextStage').textContent=stage===3?'この曲に決定！':stage===4?'この曲の方が上位':'選択した曲で次へ';
+ $('skip').style.display=(stage===3||stage===4)?'none':'inline-block';
+ $('finish').style.display=stage===4?'none':'inline-block';
+ $('bar').style.width=stage===1?(batchIndex/batches.length*45)+'%':stage===2?(45+batchIndex/batches.length*30)+'%':stage===3?'80%':(80+((insertIndex-1)/Math.max(1,rankingPool.length-1))*20)+'%';
 }
 function toggle(song,btn){
- const key=song[0]+'｜'+song[1], max=stage===1?3:stage===2?3:1;
+ const key=song[0]+'｜'+song[1], max=(stage===1||stage===2)?3:1;
  if(selected.has(key)){selected.delete(key);btn.classList.remove('selected');}
  else{
   if(selected.size>=max){$('selectionCount').textContent=`最大${max}曲まで選べます。`;return;}
@@ -169,45 +174,85 @@ function toggle(song,btn){
 }
 function advance(){
  const chosen=currentBatch().filter(s=>selected.has(s[0]+'｜'+s[1]));
- undoStack.push({stage,batchIndex,batches:JSON.parse(JSON.stringify(batches)),survivors:[...survivors],finalists:[...finalists],champion,scoreMap:new Map(scoreMap),scoreOrder:new Map(scoreOrder),scoreClock});
+ undoStack.push({stage,batchIndex,batches:JSON.parse(JSON.stringify(batches)),survivors:[...survivors],finalists:[...finalists],champion,scoreMap:new Map(scoreMap),scoreOrder:new Map(scoreOrder),scoreClock,rankingPool:[...rankingPool],sortedRunners:[...sortedRunners],insertIndex,compareIndex});
  if(stage===1){
+  chosen.forEach(s=>{const k=s[0]+'｜'+s[1];scoreMap.set(k,(scoreMap.get(k)||0)+1);if(!scoreOrder.has(k))scoreOrder.set(k,scoreClock++);});
   survivors.push(...chosen);batchIndex++;
   if(batchIndex<batches.length){render();return;}
   batches=chunk(survivors,10);batchIndex=0;stage=2;
   if(!survivors.length){show();return;}
-  if(batches.length===0){show();return;}
   render();return;
  }
  if(stage===2){
+  chosen.forEach(s=>{const k=s[0]+'｜'+s[1];scoreMap.set(k,(scoreMap.get(k)||0)+3);if(!scoreOrder.has(k))scoreOrder.set(k,scoreClock++);});
   finalists.push(...chosen);batchIndex++;
   if(batchIndex<batches.length){render();return;}
   stage=3;batchIndex=0;
   if(!finalists.length){show();return;}
   render();return;
  }
- champion=chosen[0]||null;if(champion){const k=champion[0]+'｜'+champion[1];scoreMap.set(k,(scoreMap.get(k)||0)+10);if(!scoreOrder.has(k))scoreOrder.set(k,scoreClock++);}show();
+ if(stage===3){
+  champion=chosen[0]||null;
+  if(champion){const k=champion[0]+'｜'+champion[1];scoreMap.set(k,(scoreMap.get(k)||0)+10);if(!scoreOrder.has(k))scoreOrder.set(k,scoreClock++);}
+  const pool=[...new Map(active.map(s=>[s[0]+'｜'+s[1],s])).values()]
+   .filter(s=>!champion||s[0]+'｜'+s[1]!==champion[0]+'｜'+champion[1])
+   .sort((a,b)=>{
+    const ka=a[0]+'｜'+a[1],kb=b[0]+'｜'+b[1];
+    return (scoreMap.get(kb)||0)-(scoreMap.get(ka)||0)
+      || (scoreOrder.has(ka)?scoreOrder.get(ka):999999)-(scoreOrder.has(kb)?scoreOrder.get(kb):999999)
+      || a[0].localeCompare(b[0],'ja');
+   }).slice(0,9);
+  rankingPool=pool;sortedRunners=pool.length?[pool[0]]:[];insertIndex=1;compareIndex=0;stage=4;
+  if(pool.length<=1){show();return;}
+  render();return;
+ }
+ if(stage===4){
+  const current=rankingPool[insertIndex], opponent=sortedRunners[compareIndex], winner=chosen[0];
+  const currentWins=winner&&winner[0]===current[0]&&winner[1]===current[1];
+  if(currentWins){
+   compareIndex--;
+   if(compareIndex<0){sortedRunners.unshift(current);insertIndex++;}
+  }else{
+   sortedRunners.splice(compareIndex+1,0,current);insertIndex++;
+   compareIndex=sortedRunners.length-1;
+  }
+  if(insertIndex>=rankingPool.length){show();return;}
+  render();return;
+ }
 }
 function skipBatch(){advance();}
 function start(){
- stage=1;batchIndex=0;selected=new Set();survivors=[];finalists=[];champion=null;undoStack=[];scoreMap=new Map();scoreOrder=new Map();scoreClock=0;
+ stage=1;batchIndex=0;selected=new Set();survivors=[];finalists=[];champion=null;undoStack=[];scoreMap=new Map();scoreOrder=new Map();scoreClock=0;rankingPool=[];sortedRunners=[];insertIndex=0;compareIndex=-1;
  const list=shuffle(active);
  batches=chunk(list,10);
  if(!list.length){$('round').textContent='収録曲がありません';$('cards').innerHTML='';return;}
  render();
 }
 function show(){
- const ranked=uniqueInitial.map(x=>{
-  const k=x[0]+'｜'+x[1];
-  return {song:x,score:scoreMap.get(k)||0,order:scoreOrder.has(k)?scoreOrder.get(k):999999};
- }).sort((a,b)=>b.score-a.score||a.order-b.order||a.song[0].localeCompare(b.song[0],'ja')).slice(0,10);
- $('ranking').innerHTML=ranked.map((v,i)=>`<li><span class="rank">${i+1}位</span><b>${v.song[0]}</b> <small>（${v.song[1]}）</small><small>　${v.score} pt</small></li>`).join('');
+ const ranked=[];
+ if(champion)ranked.push(champion);
+ ranked.push(...sortedRunners);
+ const seen=new Set(ranked.map(s=>s[0]+'｜'+s[1]));
+ const rest=[...new Map(active.map(s=>[s[0]+'｜'+s[1],s])).values()]
+  .filter(s=>!seen.has(s[0]+'｜'+s[1]))
+  .sort((a,b)=>{
+   const ka=a[0]+'｜'+a[1],kb=b[0]+'｜'+b[1];
+   return (scoreMap.get(kb)||0)-(scoreMap.get(ka)||0)
+    || (scoreOrder.has(ka)?scoreOrder.get(ka):999999)-(scoreOrder.has(kb)?scoreOrder.get(kb):999999)
+    || a[0].localeCompare(b[0],'ja');
+  });
+ ranked.push(...rest);
+ $('ranking').innerHTML=ranked.slice(0,10).map((song,i)=>{
+  const k=song[0]+'｜'+song[1],pts=scoreMap.get(k)||0;
+  return `<li><span class="rank">${i+1}位</span><b>${song[0]}</b> <small>（${song[1]}）</small><small>　${pts} pt</small></li>`;
+ }).join('');
  $('done').style.display='block';$('play').style.display='none';
 }
 $('nextStage').onclick=advance;
 $('skip').onclick=skipBatch;
 $('undo').onclick=()=>{
  const h=undoStack.pop();if(!h)return;
- stage=h.stage;batchIndex=h.batchIndex;batches=h.batches;survivors=h.survivors;finalists=h.finalists;champion=h.champion;scoreMap=new Map(h.scoreMap);scoreOrder=new Map(h.scoreOrder);scoreClock=h.scoreClock;render();
+ stage=h.stage;batchIndex=h.batchIndex;batches=h.batches;survivors=h.survivors;finalists=h.finalists;champion=h.champion;scoreMap=new Map(h.scoreMap);scoreOrder=new Map(h.scoreOrder);scoreClock=h.scoreClock;rankingPool=[...h.rankingPool];sortedRunners=[...h.sortedRunners];insertIndex=h.insertIndex;compareIndex=h.compareIndex;render();
 };
 $('finish').onclick=show;
 $('continue').onclick=()=>{$('done').style.display='none';$('play').style.display='block';render();};
