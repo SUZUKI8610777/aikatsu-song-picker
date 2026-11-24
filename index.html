@@ -45,13 +45,13 @@ details summary{cursor:pointer;font-weight:700;color:#705d7c}textarea{min-height
 </section>
 <section class="panel" id="done">
  <h2 style="color:#d94e91;margin-top:0">♡ あなたの推し曲 TOP 10 ♡</h2>
- <p class="hint">No.1決定後、残りの候補を2曲ずつ直接比較して2〜10位を決めます。ポイントは候補選出と同点時の参考に使います。</p>
+ <p class="hint">No.1決定後、残りの候補を2曲ずつ直接比較して2〜10位を決めます。最終順位に応じて1位10pt、2位9pt…10位1ptを表示します。</p>
  <ol class="ranking" id="ranking"></ol>
  <div class="actions"><button id="continue">比較を続ける</button><button id="reset" class="secondary">最初からやり直す</button></div>
 </section>
 <section class="panel">
  <div class="tabs"><button class="tab active" id="tabGuide">使い方</button><button class="tab" id="tabSongs">収録曲・設定</button></div>
- <div id="guide"><p>① 予選では10曲から最大3曲を選びます。② 準決勝では最大3曲に絞ります。③ 決勝でNo.1を決定。④ 最後に2曲ずつ比較して2〜10位を細かく決めます。</p><p class="hint">シリーズの絞り込みや、曲の追加・削除もできます。選んだ曲だけが次の段階に進みます。</p></div>
+ <div id="guide"><p>① 予選では10曲から最大3曲を選びます。② 準決勝では最大3曲に絞ります。③ 決勝でNo.1を決定。④ 最後に2曲ずつ比較して2〜10位を細かく決め、順位に応じたポイントを付けます。</p><p class="hint">シリーズの絞り込みや、曲の追加・削除もできます。選んだ曲だけが次の段階に進みます。</p></div>
  <div id="songSettings" hidden>
   <input type="search" id="search" placeholder="曲名・シリーズで検索">
   <div class="filters" id="filters"></div>
@@ -211,9 +211,14 @@ function advance(){
   const currentWins=winner&&winner[0]===current[0]&&winner[1]===current[1];
   if(currentWins){
    compareIndex--;
-   if(compareIndex<0){sortedRunners.unshift(current);insertIndex++;}
+   if(compareIndex<0){
+    sortedRunners.unshift(current);
+    insertIndex++;
+    compareIndex=sortedRunners.length-1;
+   }
   }else{
-   sortedRunners.splice(compareIndex+1,0,current);insertIndex++;
+   sortedRunners.splice(compareIndex+1,0,current);
+   insertIndex++;
    compareIndex=sortedRunners.length-1;
   }
   if(insertIndex>=rankingPool.length){show();return;}
@@ -243,7 +248,7 @@ function show(){
   });
  ranked.push(...rest);
  $('ranking').innerHTML=ranked.slice(0,10).map((song,i)=>{
-  const k=song[0]+'｜'+song[1],pts=scoreMap.get(k)||0;
+  const pts=10-i;
   return `<li><span class="rank">${i+1}位</span><b>${song[0]}</b> <small>（${song[1]}）</small><small>　${pts} pt</small></li>`;
  }).join('');
  $('done').style.display='block';$('play').style.display='none';
